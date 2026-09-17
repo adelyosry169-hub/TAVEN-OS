@@ -383,7 +383,3 @@ elif section == "مصاريف إضافية (EXTRA EXPENSES)":
                 save_sheet(updated, "EXTRA_EXPENSES")
                 st.success("تم التسجيل بنجاح!")
                 st.rerun()
-    </html>
-    """
-
-    components.html(mario_mobile_html, height=460)
