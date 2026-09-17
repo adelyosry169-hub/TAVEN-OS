@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-# ضبط إعدادات الصفحة
+# ================== إعدادات عامة للصفحة ==================
 st.set_page_config(
     page_title="TAVEN OS",
     page_icon="⚡",
@@ -10,7 +10,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ----------------- تصميم واستجابة سريعة (CSS) -----------------
 st.markdown(
     """
 <style>
@@ -45,341 +44,262 @@ st.markdown(
 
 EXCEL_FILE = "TAVEN.xlsx"
 
+# ==================================================================
+# تعريف الصفحات (SECTIONS)
+# ------------------------------------------------------------------
+# عشان تضيف صفحة جديدة مستقبلًا: انسخ أي عنصر تحت وغيّر البيانات،
+# مش محتاج تكتب كود جديد أو تكرر منطق الجدول/الفورم من الأول.
+# ==================================================================
+SECTIONS = {
+    "PARTNERS": {
+        "label": "الشركاء (PARTNERS)",
+        "default": pd.DataFrame(
+            [
+                {"Partner": "Partner A", "Contribution": 50000, "Purpose": "Initial Inventory Funding"},
+                {"Partner": "Partner B", "Contribution": 30000, "Purpose": "Marketing & Ads Capital"},
+            ]
+        ),
+        "fields": [
+            {"name": "Partner", "label": "اسم الشريك", "type": "text"},
+            {"name": "Contribution", "label": "المساهمة (EGP)", "type": "number", "min": 0.0, "step": 1000.0},
+            {"name": "Purpose", "label": "الغرض من المساهمة", "type": "text"},
+        ],
+        "total_field": "Contribution",
+        "add_label": "+ إضافة مساهمة",
+    },
+    "FINANCE": {
+        "label": "المالية (FINANCE)",
+        "default": pd.DataFrame(
+            [
+                {"Category": "Fabric", "Subcategory": "French Terry", "Qty": 100, "Unit Cost": 150, "Total": 15000},
+                {"Category": "Ads", "Subcategory": "Meta Ads", "Qty": 1, "Unit Cost": 5000, "Total": 5000},
+            ]
+        ),
+        "fields": [
+            {"name": "Category", "label": "النوع", "type": "text", "default": "Fabric"},
+            {"name": "Subcategory", "label": "الوصف", "type": "text", "default": "Cotton"},
+            {"name": "Qty", "label": "الكمية", "type": "int", "min": 1, "default": 1, "step": 1},
+            {"name": "Unit Cost", "label": "سعر القطعة (EGP)", "type": "number", "min": 0.0, "step": 10.0},
+        ],
+        "computed_field": {"name": "Total", "of": ["Qty", "Unit Cost"]},
+        "total_field": "Total",
+        "add_label": "+ تسجيل مصروف",
+    },
+    "OPERATIONS": {
+        "label": "العمليات (OPERATIONS)",
+        "default": pd.DataFrame(
+            [
+                {"Material": "French Terry Cotton 400GSM", "Cost": 15000, "Weight": 100, "Cost/KG": 150, "Supplier": "Nile Textiles"},
+                {"Material": "Ribbing Fabric", "Cost": 2400, "Weight": 20, "Cost/KG": 120, "Supplier": "Delta Weave"},
+            ]
+        ),
+        "fields": [
+            {"name": "Material", "label": "اسم الخام", "type": "text"},
+            {"name": "Weight", "label": "الوزن (KG)", "type": "number", "min": 0.1, "default": 1.0, "step": 1.0},
+            {"name": "Cost/KG", "label": "سعر الكيلو (EGP)", "type": "number", "min": 0.0, "step": 10.0},
+            {"name": "Supplier", "label": "المورد", "type": "text"},
+        ],
+        "computed_field": {"name": "Cost", "of": ["Weight", "Cost/KG"]},
+        "total_field": "Cost",
+        "add_label": "+ تسجيل خام",
+    },
+    "EXTRA_EXPENSES": {
+        "label": "مصاريف إضافية (EXTRA EXPENSES)",
+        "default": pd.DataFrame(
+            [
+                {"Expense Name": "Shipping & Delivery", "Qty": 10, "Unit Cost": 50, "Total": 500, "Notes": "Sample Shipping"},
+            ]
+        ),
+        "fields": [
+            {"name": "Expense Name", "label": "اسم المصروف", "type": "text"},
+            {"name": "Qty", "label": "الكمية", "type": "int", "min": 1, "default": 1, "step": 1},
+            {"name": "Unit Cost", "label": "سعر الوحدة (EGP)", "type": "number", "min": 0.0, "step": 10.0},
+            {"name": "Notes", "label": "ملاحظات", "type": "text"},
+        ],
+        "computed_field": {"name": "Total", "of": ["Qty", "Unit Cost"]},
+        "total_field": "Total",
+        "add_label": "+ إضافة مصروف",
+    },
+    # صفحة جديدة اتضافت كمثال حي — دلوقتي Gross Val / Realized حقيقيين
+    # وجايين من بيانات فعلية بدل ما يكونوا أرقام ثابتة في الكود
+    "SALES": {
+        "label": "المبيعات (SALES)",
+        "default": pd.DataFrame(
+            [
+                {"Product": "T-Shirt Basic", "Qty Sold": 10, "Unit Price": 1160, "Total Revenue": 11600, "Amount Collected": 5000},
+            ]
+        ),
+        "fields": [
+            {"name": "Product", "label": "اسم المنتج", "type": "text"},
+            {"name": "Qty Sold", "label": "الكمية المباعة", "type": "int", "min": 1, "default": 1, "step": 1},
+            {"name": "Unit Price", "label": "سعر البيع للوحدة (EGP)", "type": "number", "min": 0.0, "step": 10.0},
+            {"name": "Amount Collected", "label": "المبلغ المحصّل فعليًا (EGP)", "type": "number", "min": 0.0, "step": 100.0},
+        ],
+        "computed_field": {"name": "Total Revenue", "of": ["Qty Sold", "Unit Price"]},
+        "total_field": "Total Revenue",
+        "add_label": "+ تسجيل عملية بيع",
+    },
+}
 
-def load_data():
-    default_partners = pd.DataFrame(
-        [
-            {
-                "Partner": "Partner A",
-                "Contribution": 50000,
-                "Purpose": "Initial Inventory Funding",
-            },
-            {
-                "Partner": "Partner B",
-                "Contribution": 30000,
-                "Purpose": "Marketing & Ads Capital",
-            },
-        ]
-    )
+SHEET_NAMES = list(SECTIONS.keys())
 
-    default_finance = pd.DataFrame(
-        [
-            {
-                "Category": "Fabric",
-                "Subcategory": "French Terry",
-                "Qty": 100,
-                "Unit Cost": 150,
-                "Total": 15000,
-            },
-            {
-                "Category": "Ads",
-                "Subcategory": "Meta Ads",
-                "Qty": 1,
-                "Unit Cost": 5000,
-                "Total": 5000,
-            },
-        ]
-    )
 
-    default_ops = pd.DataFrame(
-        [
-            {
-                "Material": "French Terry Cotton 400GSM",
-                "Cost": 15000,
-                "Weight": 100,
-                "Cost/KG": 150,
-                "Supplier": "Nile Textiles",
-            },
-            {
-                "Material": "Ribbing Fabric",
-                "Cost": 2400,
-                "Weight": 20,
-                "Cost/KG": 120,
-                "Supplier": "Delta Weave",
-            },
-        ]
-    )
+# ================== تحميل / حفظ البيانات ==================
+@st.cache_data(show_spinner=False)
+def _read_excel_file(path):
+    """يقرأ كل الشيتات من الملف مرة واحدة. لو شيت ناقص أو الملف مش موجود
+    بيستخدم البيانات الافتراضية بدل ما يعمل كراش."""
+    data = {}
+    if os.path.exists(path):
+        try:
+            xls = pd.ExcelFile(path)
+            for name in SHEET_NAMES:
+                if name in xls.sheet_names:
+                    data[name] = pd.read_excel(xls, sheet_name=name)
+        except Exception as e:
+            st.warning(f"تعذر قراءة {path}، هيتم استخدام بيانات افتراضية مؤقتًا. الخطأ: {e}")
+    for name in SHEET_NAMES:
+        if name not in data:
+            data[name] = SECTIONS[name]["default"].copy()
+    return data
 
-    default_extra = pd.DataFrame(
-        [
-            {
-                "Expense Name": "Shipping & Delivery",
-                "Qty": 10,
-                "Unit Cost": 50,
-                "Total": 500,
-                "Notes": "Sample Shipping",
-            }
-        ]
-    )
 
-    if not os.path.exists(EXCEL_FILE):
-        with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-            default_partners.to_excel(
-                writer, sheet_name="PARTNERS", index=False
-            )
-            default_finance.to_excel(writer, sheet_name="FINANCE", index=False)
-            default_ops.to_excel(writer, sheet_name="OPERATIONS", index=False)
-            default_extra.to_excel(
-                writer, sheet_name="EXTRA_EXPENSES", index=False
-            )
-        return default_partners, default_finance, default_ops, default_extra
+def init_state():
+    """يحمّل البيانات في session_state مرة واحدة بس عند أول تشغيل للجلسة.
+    بعد كده كل التعديلات بتحصل في الذاكرة (session_state) وتنعكس فورًا
+    على الداشبورد، وميتلمسش ملف الإكسيل غير لما تدوس زرار الحفظ."""
+    if "data" not in st.session_state:
+        st.session_state.data = _read_excel_file(EXCEL_FILE)
 
+
+def persist_to_excel():
+    """يحفظ كل الشيتات مرة واحدة في نفس الملف (أأمن من الكتابة شيت شيت)."""
     try:
-        xls = pd.ExcelFile(EXCEL_FILE)
-        existing_sheets = xls.sheet_names
-        partners_df = (
-            pd.read_excel(xls, sheet_name="PARTNERS")
-            if "PARTNERS" in existing_sheets
-            else default_partners
-        )
-        finance_df = (
-            pd.read_excel(xls, sheet_name="FINANCE")
-            if "FINANCE" in existing_sheets
-            else default_finance
-        )
-        ops_df = (
-            pd.read_excel(xls, sheet_name="OPERATIONS")
-            if "OPERATIONS" in existing_sheets
-            else default_ops
-        )
-        extra_df = (
-            pd.read_excel(xls, sheet_name="EXTRA_EXPENSES")
-            if "EXTRA_EXPENSES" in existing_sheets
-            else default_extra
-        )
-        return partners_df, finance_df, ops_df, extra_df
-    except Exception:
-        return default_partners, default_finance, default_ops, default_extra
+        with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+            for name in SHEET_NAMES:
+                st.session_state.data[name].to_excel(writer, sheet_name=name, index=False)
+        _read_excel_file.clear()  # نفضّي الكاش عشان القراءة الجاية تبقى محدثة
+        return True, None
+    except PermissionError:
+        return False, "الملف مفتوح في برنامج تاني (زي Excel) — اقفله وحاول تاني."
+    except Exception as e:
+        return False, str(e)
 
 
-def save_sheet(df, sheet_name):
-    mode = "a" if os.path.exists(EXCEL_FILE) else "w"
-    with pd.ExcelWriter(
-        EXCEL_FILE, engine="openpyxl", mode=mode, if_sheet_exists="replace"
-    ) as writer:
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
+init_state()
 
-
-partners_df, finance_df, ops_df, extra_exp_df = load_data()
-
-# ----------------- الهيدر والمؤشرات الرئيسية -----------------
+# ================== الهيدر والمؤشرات (بتتحدث لحظيًا) ==================
 st.title("⚡ TAVEN OS")
 
-fin_total = (
-    finance_df["Total"].sum()
-    if not finance_df.empty and "Total" in finance_df
-    else 0
-)
-extra_total = (
-    extra_exp_df["Total"].sum()
-    if not extra_exp_df.empty and "Total" in extra_exp_df
-    else 0
-)
-total_exp = fin_total + extra_total
+sales_df = st.session_state.data["SALES"]
+finance_df = st.session_state.data["FINANCE"]
+ops_df = st.session_state.data["OPERATIONS"]
+extra_df = st.session_state.data["EXTRA_EXPENSES"]
 
-gross_val = 11600
-realized = 5000
+gross_val = sales_df["Total Revenue"].sum() if "Total Revenue" in sales_df else 0
+realized = sales_df["Amount Collected"].sum() if "Amount Collected" in sales_df else 0
+
+# ملحوظة: بقينا بنجمع مصاريف Operations كمان (كانت ناقصة في النسخة القديمة)
+total_exp = (
+    (finance_df["Total"].sum() if "Total" in finance_df else 0)
+    + (ops_df["Cost"].sum() if "Cost" in ops_df else 0)
+    + (extra_df["Total"].sum() if "Total" in extra_df else 0)
+)
 net_profit = realized - total_exp
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Gross Val", f"{gross_val:,.0f} EGP")
-m2.metric("Realized", f"{realized:,.0f} EGP")
+m1.metric("Gross Val (إجمالي المبيعات)", f"{gross_val:,.0f} EGP")
+m2.metric("Realized (المحصّل فعليًا)", f"{realized:,.0f} EGP")
 m3.metric("Total Exp (المصاريف)", f"{total_exp:,.0f} EGP")
 m4.metric("Net Profit (صافي الربح)", f"{net_profit:,.0f} EGP")
 
 st.markdown("---")
 
-section = st.radio(
+section_key = st.radio(
     "اختر القسم / SECTION",
-    [
-        "PARTNERS",
-        "FINANCE (المالية)",
-        "OPERATIONS (العمليات)",
-        "مصاريف إضافية (EXTRA EXPENSES)",
-    ],
+    SHEET_NAMES,
+    format_func=lambda k: SECTIONS[k]["label"],
     horizontal=True,
 )
 
-col_table, col_form = st.columns([2.2, 1])
+st.markdown("---")
 
-# ---------------- 1. قسم الشركاء ----------------
-if section == "PARTNERS":
+
+# ================== دالة عامة لعرض أي قسم ==================
+def render_section(key):
+    cfg = SECTIONS[key]
+
+    col_table, col_form = st.columns([2.2, 1])
+
     with col_table:
-        st.subheader("جدول الشركاء (PARTNERS)")
-        edited_partners = st.data_editor(
-            partners_df, num_rows="dynamic", use_container_width=True
+        st.subheader(f"جدول {cfg['label']}")
+        edited = st.data_editor(
+            st.session_state.data[key],
+            num_rows="dynamic",
+            use_container_width=True,
+            key=f"editor_{key}",
         )
-        if st.button("حفظ التعديلات في الإكسيل"):
-            save_sheet(edited_partners, "PARTNERS")
-            st.success("تم التحديث بنجاح!")
-            st.rerun()
+        # أي تعديل (حذف صف / تغيير رقم / إضافة صف يدويًا) بيترحّل فورًا
+        # لـ session_state، وده اللي بيخلي المؤشرات فوق تتحدث تلقائيًا
+        st.session_state.data[key] = edited
+
+        total_field = cfg.get("total_field")
+        if total_field and total_field in edited:
+            st.info(f"📊 إجمالي {cfg['label']}: {edited[total_field].sum():,.2f} EGP")
+
+        if st.button("💾 حفظ نهائي في ملف الإكسيل", key=f"save_{key}"):
+            ok, err = persist_to_excel()
+            if ok:
+                st.success("تم الحفظ في TAVEN.xlsx بنجاح!")
+            else:
+                st.error(f"فشل الحفظ: {err}")
 
     with col_form:
-        st.subheader("DATA ENTRY: PARTNERS")
-        p_name = st.text_input("Partner Name")
-        p_contrib = st.number_input(
-            "Contribution (EGP)", min_value=0.0, step=1000.0
-        )
-        p_purpose = st.text_input("Purpose")
-
-        if st.button("+ Add Contribution"):
-            if p_name:
-                new_row = pd.DataFrame(
-                    [
-                        {
-                            "Partner": p_name,
-                            "Contribution": p_contrib,
-                            "Purpose": p_purpose,
-                        }
-                    ]
+        st.subheader("إضافة سجل جديد")
+        values = {}
+        for f in cfg["fields"]:
+            widget_key = f"input_{key}_{f['name']}"
+            if f["type"] == "text":
+                values[f["name"]] = st.text_input(
+                    f["label"], value=f.get("default", ""), key=widget_key
                 )
-                updated = pd.concat([partners_df, new_row], ignore_index=True)
-                save_sheet(updated, "PARTNERS")
-                st.success("تمت الإضافة!")
+            elif f["type"] == "int":
+                values[f["name"]] = st.number_input(
+                    f["label"],
+                    min_value=f.get("min", 0),
+                    value=f.get("default", f.get("min", 0)),
+                    step=f.get("step", 1),
+                    key=widget_key,
+                )
+            else:  # number (float)
+                values[f["name"]] = st.number_input(
+                    f["label"],
+                    min_value=float(f.get("min", 0.0)),
+                    value=float(f.get("default", f.get("min", 0.0))),
+                    step=float(f.get("step", 1.0)),
+                    key=widget_key,
+                )
+
+        computed = cfg.get("computed_field")
+        if computed:
+            a, b = computed["of"]
+            auto_val = float(values[a]) * float(values[b])
+            values[computed["name"]] = auto_val
+            st.markdown(f"### 💵 الإجمالي: **{auto_val:,.2f} EGP**")
+
+        # أول حقل نصي في الفورم بيتعامل معاه كـ"حقل مطلوب" (زي المنطق الأصلي)
+        required_field = next((f["name"] for f in cfg["fields"] if f["type"] == "text"), None)
+
+        if st.button(cfg["add_label"], key=f"add_{key}"):
+            if required_field and not str(values.get(required_field, "")).strip():
+                st.warning("من فضلك املأ الحقل الأساسي الأول قبل الإضافة.")
+            else:
+                new_row = pd.DataFrame([values])
+                st.session_state.data[key] = pd.concat(
+                    [st.session_state.data[key], new_row], ignore_index=True
+                )
+                st.success("تمت الإضافة للجدول! (اضغط 'حفظ نهائي' لو عايز تثبّتها في ملف الإكسيل)")
                 st.rerun()
 
-# ---------------- 2. قسم المالية (حساب آلي لحظي مباشر) ----------------
-elif section == "FINANCE (المالية)":
-    with col_table:
-        st.subheader("جدول المصاريف والمالية")
-        edited_finance = st.data_editor(
-            finance_df, num_rows="dynamic", use_container_width=True
-        )
-        if st.button("حفظ التعديلات في الإكسيل"):
-            save_sheet(edited_finance, "FINANCE")
-            st.success("تم التحديث بنجاح!")
-            st.rerun()
 
-    with col_form:
-        st.subheader("DATA ENTRY: FINANCE")
-        fin_cat = st.text_input("Category (النوع)", value="Fabric")
-        fin_subcat = st.text_input("Subcategory (الوصف)", value="Cotton")
-
-        # أدوات الإدخال اللحظية
-        fin_qty = st.number_input(
-            "الكمية (Qty)", min_value=1, value=1, step=1, key="f_qty"
-        )
-        fin_unit = st.number_input(
-            "سعر القطعة (Unit Cost EGP)",
-            min_value=0.0,
-            value=0.0,
-            step=10.0,
-            key="f_unit",
-        )
-
-        # الحساب التلقائي المباشر واللحظي بدون أزرار
-        auto_total = float(fin_qty) * float(fin_unit)
-
-        st.markdown(f"### 💵 الإجمالي: **{auto_total:,.2f} EGP**")
-
-        if st.button("+ Record Expense (تسجيل المصروف)"):
-            if fin_cat:
-                new_row = pd.DataFrame(
-                    [
-                        {
-                            "Category": fin_cat,
-                            "Subcategory": fin_subcat,
-                            "Qty": fin_qty,
-                            "Unit Cost": fin_unit,
-                            "Total": auto_total,
-                        }
-                    ]
-                )
-                updated = pd.concat([finance_df, new_row], ignore_index=True)
-                save_sheet(updated, "FINANCE")
-                st.success("تم التسجيل والإضافة أوتوماتيكياً!")
-                st.rerun()
-
-# ---------------- 3. قسم العمليات (حساب آلي لحظي) ----------------
-elif section == "OPERATIONS (العمليات)":
-    with col_table:
-        st.subheader("جدول المدخلات والعمليات")
-        edited_ops = st.data_editor(
-            ops_df, num_rows="dynamic", use_container_width=True
-        )
-        if st.button("حفظ التعديلات في الإكسيل"):
-            save_sheet(edited_ops, "OPERATIONS")
-            st.success("تم التحديث بنجاح!")
-            st.rerun()
-
-    with col_form:
-        st.subheader("DATA ENTRY: OPERATIONS")
-        op_mat = st.text_input("Material Type (اسم الخام)")
-        op_weight = st.number_input(
-            "الوزن / الكمية (KG)", min_value=0.1, value=1.0, step=1.0
-        )
-        op_unit_cost = st.number_input(
-            "سعر الكيلو (Cost per KG)", min_value=0.0, value=0.0, step=10.0
-        )
-        op_supp = st.text_input("المورد (Supplier)")
-
-        # حساب إجمالي آلي لحظي
-        auto_op_cost = float(op_weight) * float(op_unit_cost)
-        st.markdown(f"### ⚖️ الإجمالي: **{auto_op_cost:,.2f} EGP**")
-
-        if st.button("+ Log Raw Material (تسجيل الخام)"):
-            if op_mat:
-                new_row = pd.DataFrame(
-                    [
-                        {
-                            "Material": op_mat,
-                            "Cost": auto_op_cost,
-                            "Weight": op_weight,
-                            "Cost/KG": op_unit_cost,
-                            "Supplier": op_supp,
-                        }
-                    ]
-                )
-                updated = pd.concat([ops_df, new_row], ignore_index=True)
-                save_sheet(updated, "OPERATIONS")
-                st.success("تم الحفظ بالتكلفة المحسوبة أوتوماتيكياً!")
-                st.rerun()
-
-# ---------------- 4. قسم مصاريف إضافية (حساب آلي لحظي) ----------------
-elif section == "مصاريف إضافية (EXTRA EXPENSES)":
-    with col_table:
-        st.subheader("جدول المصاريف الإضافية والنثرية")
-        edited_extra = st.data_editor(
-            extra_exp_df, num_rows="dynamic", use_container_width=True
-        )
-        if st.button("حفظ التعديلات في الإكسيل"):
-            save_sheet(edited_extra, "EXTRA_EXPENSES")
-            st.success("تم التحديث بنجاح!")
-            st.rerun()
-
-    with col_form:
-        st.subheader("DATA ENTRY: EXTRA EXPENSES")
-        ext_name = st.text_input("اسم المصروف (Expense Name)")
-        ext_qty = st.number_input(
-            "الكمية (Qty)", min_value=1, value=1, step=1, key="x_qty"
-        )
-        ext_unit = st.number_input(
-            "سعر الوحدة (Unit Cost EGP)",
-            min_value=0.0,
-            value=0.0,
-            step=10.0,
-            key="x_unit",
-        )
-        ext_notes = st.text_input("ملاحظات (Notes)")
-
-        # حساب إجمالي آلي لحظي
-        auto_ext_total = float(ext_qty) * float(ext_unit)
-        st.markdown(f"### 🧾 الإجمالي: **{auto_ext_total:,.2f} EGP**")
-
-        if st.button("+ Add Extra Expense (إضافة مصروف)"):
-            if ext_name:
-                new_row = pd.DataFrame(
-                    [
-                        {
-                            "Expense Name": ext_name,
-                            "Qty": ext_qty,
-                            "Unit Cost": ext_unit,
-                            "Total": auto_ext_total,
-                            "Notes": ext_notes,
-                        }
-                    ]
-                )
-                updated = pd.concat([extra_exp_df, new_row], ignore_index=True)
-                save_sheet(updated, "EXTRA_EXPENSES")
-                st.success("تم التسجيل بنجاح!")
-                st.rerun()
+render_section(section_key)
