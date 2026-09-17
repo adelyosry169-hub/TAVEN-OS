@@ -10,11 +10,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ----------------- انيميشن وتصميم هادي وعصري (Custom CSS) -----------------
+# ----------------- انيميشن وتصميم عصري (Custom CSS) -----------------
 st.markdown(
     """
 <style>
-    /* انيميشن ظاهري متدرج للصفحة */
     @keyframes fadeIn {
         0% { opacity: 0; transform: translateY(12px); }
         100% { opacity: 1; transform: translateY(0); }
@@ -25,7 +24,6 @@ st.markdown(
         animation: fadeIn 0.8s ease-in-out;
     }
     
-    /* تصميم كروت المؤشرات */
     div[data-testid="stMetric"] {
         background: rgba(255, 255, 255, 0.85);
         border: 1px solid #e0e7ff;
@@ -40,7 +38,6 @@ st.markdown(
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
     }
     
-    /* تحسين شكل الأزرار مع انيميشن ناعم */
     .stButton>button {
         border-radius: 8px;
         background: linear-gradient(135deg, #2563eb, #1d4ed8);
@@ -64,86 +61,118 @@ EXCEL_FILE = "TAVEN.xlsx"
 
 
 def load_data():
-    """تحميل البيانات وتأسيس الملف إذا لم يكن موجوداً"""
+    """تحميل البيانات بأمان وتفادي خطأ الشيتات المفقودة"""
+    # البيانات الافتراضية
+    default_partners = pd.DataFrame(
+        [
+            {
+                "Partner": "Partner A",
+                "Contribution": 50000,
+                "Purpose": "Initial Inventory Funding",
+            },
+            {
+                "Partner": "Partner B",
+                "Contribution": 30000,
+                "Purpose": "Marketing & Ads Capital",
+            },
+        ]
+    )
+
+    default_finance = pd.DataFrame(
+        [
+            {
+                "Category": "Fabric",
+                "Subcategory": "French Terry",
+                "Qty": 100,
+                "Unit Cost": 150,
+                "Total": 15000,
+            },
+            {
+                "Category": "Ads",
+                "Subcategory": "Meta Ads",
+                "Qty": 1,
+                "Unit Cost": 5000,
+                "Total": 5000,
+            },
+        ]
+    )
+
+    default_ops = pd.DataFrame(
+        [
+            {
+                "Material": "French Terry Cotton 400GSM",
+                "Cost": 15000,
+                "Weight": 100,
+                "Cost/KG": 150,
+                "Supplier": "Nile Textiles",
+            },
+            {
+                "Material": "Ribbing Fabric",
+                "Cost": 2400,
+                "Weight": 20,
+                "Cost/KG": 120,
+                "Supplier": "Delta Weave",
+            },
+        ]
+    )
+
+    default_extra = pd.DataFrame(
+        [
+            {
+                "Expense Name": "Shipping & Delivery",
+                "Qty": 10,
+                "Unit Cost": 50,
+                "Total": 500,
+                "Notes": "Sample Shipping",
+            }
+        ]
+    )
+
     if not os.path.exists(EXCEL_FILE):
         with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-            pd.DataFrame(
-                [
-                    {
-                        "Partner": "Partner A",
-                        "Contribution": 50000,
-                        "Purpose": "Initial Inventory Funding",
-                    },
-                    {
-                        "Partner": "Partner B",
-                        "Contribution": 30000,
-                        "Purpose": "Marketing & Ads Capital",
-                    },
-                ]
-            ).to_excel(writer, sheet_name="PARTNERS", index=False)
+            default_partners.to_excel(
+                writer, sheet_name="PARTNERS", index=False
+            )
+            default_finance.to_excel(writer, sheet_name="FINANCE", index=False)
+            default_ops.to_excel(writer, sheet_name="OPERATIONS", index=False)
+            default_extra.to_excel(
+                writer, sheet_name="EXTRA_EXPENSES", index=False
+            )
+        return default_partners, default_finance, default_ops, default_extra
 
-            pd.DataFrame(
-                [
-                    {
-                        "Category": "Fabric",
-                        "Subcategory": "French Terry",
-                        "Qty": 100,
-                        "Unit Cost": 150,
-                        "Total": 15000,
-                    },
-                    {
-                        "Category": "Ads",
-                        "Subcategory": "Meta Ads",
-                        "Qty": 1,
-                        "Unit Cost": 5000,
-                        "Total": 5000,
-                    },
-                ]
-            ).to_excel(writer, sheet_name="FINANCE", index=False)
+    # قراءة الملف ومرعاة وجود أية شيت مفقودة
+    xls = pd.ExcelFile(EXCEL_FILE)
+    existing_sheets = xls.sheet_names
 
-            pd.DataFrame(
-                [
-                    {
-                        "Material": "French Terry Cotton 400GSM",
-                        "Cost": 15000,
-                        "Weight": 100,
-                        "Cost/KG": 150,
-                        "Supplier": "Nile Textiles",
-                    },
-                    {
-                        "Material": "Ribbing Fabric",
-                        "Cost": 2400,
-                        "Weight": 20,
-                        "Cost/KG": 120,
-                        "Supplier": "Delta Weave",
-                    },
-                ]
-            ).to_excel(writer, sheet_name="OPERATIONS", index=False)
-
-            pd.DataFrame(
-                [
-                    {
-                        "Expense Name": "Shipping & Delivery",
-                        "Qty": 10,
-                        "Unit Cost": 50,
-                        "Total": 500,
-                        "Notes": "Sample Shipping",
-                    }
-                ]
-            ).to_excel(writer, sheet_name="EXTRA_EXPENSES", index=False)
-
-    return (
-        pd.read_excel(EXCEL_FILE, sheet_name="PARTNERS"),
-        pd.read_excel(EXCEL_FILE, sheet_name="FINANCE"),
-        pd.read_excel(EXCEL_FILE, sheet_name="OPERATIONS"),
-        pd.read_excel(EXCEL_FILE, sheet_name="EXTRA_EXPENSES"),
+    partners_df = (
+        pd.read_excel(xls, sheet_name="PARTNERS")
+        if "PARTNERS" in existing_sheets
+        else default_partners
     )
+    finance_df = (
+        pd.read_excel(xls, sheet_name="FINANCE")
+        if "FINANCE" in existing_sheets
+        else default_finance
+    )
+    ops_df = (
+        pd.read_excel(xls, sheet_name="OPERATIONS")
+        if "OPERATIONS" in existing_sheets
+        else default_ops
+    )
+    extra_df = (
+        pd.read_excel(xls, sheet_name="EXTRA_EXPENSES")
+        if "EXTRA_EXPENSES" in existing_sheets
+        else default_extra
+    )
+
+    return partners_df, finance_df, ops_df, extra_df
 
 
 def save_sheet(df, sheet_name):
     """حفظ التعديلات أوتوماتيكياً في الإكسيل"""
+    mode = "a" if os.path.exists(EXCEL_FILE) else "w"
     with pd.ExcelWriter(
-        EXCEL_FILE, engine="openpyxl", mode="a", if_sheet_exists="replace"
+        EXCEL_FILE, engine="openpyxl", mode=mode, if_sheet_exists="replace"
     ) as writer:
         df.to_excel(writer, sheet_name=sheet_name, index=False)
 
@@ -255,7 +284,6 @@ elif section == "FINANCE (المالية)":
             key="fin_unit",
         )
 
-        # حساب الإجمالي تلقائياً
         calculated_total = qty * unit_cost
         st.info(f"💡 الإجمالي المحسوب تلقائياً: **{calculated_total:,.2f} EGP**")
 
@@ -303,7 +331,6 @@ elif section == "OPERATIONS (العمليات)":
         )
         supplier = st.text_input("المورد (Supplier)", key="op_supp")
 
-        # حساب الإجمالي أوتوماتيكياً
         calc_op_total = weight * unit_cost_kg
         st.info(
             f"💡 إجمالي التكلفة المحسوبة: **{calc_op_total:,.2f} EGP** (تكلفة الكيلو: {unit_cost_kg} EGP)"
@@ -327,7 +354,7 @@ elif section == "OPERATIONS (العمليات)":
                 st.success("تم الحفظ بالتكلفة المحسوبة أوتوماتيكياً!")
                 st.rerun()
 
-# ---------------- 4. قسم مصاريف إضافية (جديد) ----------------
+# ---------------- 4. قسم مصاريف إضافية ----------------
 elif section == "مصاريف إضافية (EXTRA EXPENSES)":
     with col_table:
         st.subheader("جدول المصاريف الإضافية والنثرية")
@@ -353,7 +380,6 @@ elif section == "مصاريف إضافية (EXTRA EXPENSES)":
         )
         ext_notes = st.text_input("ملاحظات (Notes)", key="ext_notes")
 
-        # حساب الإجمالي أوتوماتيكياً
         calc_ext_total = ext_qty * ext_unit
         st.info(f"💡 إجمالي المصروف الإضافي: **{calc_ext_total:,.2f} EGP**")
 
@@ -370,6 +396,10 @@ elif section == "مصاريف إضافية (EXTRA EXPENSES)":
                         }
                     ]
                 )
+                updated = pd.concat([extra_exp_df, new_row], ignore_index=True)
+                save_sheet(updated, "EXTRA_EXPENSES")
+                st.success("تم تسجيل المصروف الإضافي بنجاح!")
+                st.rerun()
                 updated = pd.concat([extra_exp_df, new_row], ignore_index=True)
                 save_sheet(updated, "EXTRA_EXPENSES")
                 st.success("تم تسجيل المصروف الإضافي بنجاح!")
