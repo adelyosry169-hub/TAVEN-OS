@@ -230,66 +230,6 @@ def editable_table(name: str, df: pd.DataFrame, num_rows: str = "dynamic", key: 
         return edited
 
     return df
-
-
-# ==================================================================
-# تسجيل الدخول
-# ==================================================================
-def _valid_credentials(username: str, password: str) -> bool:
-    try:
-        creds = dict(st.secrets.get("credentials", {}))
-    except Exception:
-        creds = {}
-    return username in creds and str(creds[username]) == password
-
-
-def _login_form():
-    st.markdown(
-        """
-        <div style="text-align:center; margin-top:60px;">
-            <h1 style="font-size:3rem;">⚡ TAVEN OS</h1>
-            <p style="color:#94a3b8;">النظام الإداري والمالي لبراند TAVEN</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    _, mid, _ = st.columns([1, 1.2, 1])
-    with mid:
-        with st.form("login_form"):
-            st.subheader("🔐 تسجيل الدخول")
-            username = st.text_input("اسم المستخدم")
-            password = st.text_input("كلمة المرور", type="password")
-            submitted = st.form_submit_button("دخول", use_container_width=True)
-
-        if submitted:
-            if _valid_credentials(username, password):
-                st.session_state.authenticated = True
-                st.session_state.username = username
-                st.rerun()
-            else:
-                angry_warning("اسم المستخدم أو كلمة المرور غلط! جرب تاني")
-
-
-def sidebar_user_box():
-    with st.sidebar:
-        st.markdown("---")
-        st.caption(f"👤 مسجل دخول باسم: **{st.session_state.get('username', '')}**")
-        if st.button("🚪 تسجيل خروج", key="logout_btn", use_container_width=True):
-            st.session_state.authenticated = False
-            st.session_state.pop("username", None)
-            st.rerun()
-        st.caption(gdrive.status_message())
-
-
-def require_login():
-    """حط السطر ده أول حاجة في كل صفحة (بعد set_page_config و inject_theme_css).
-    لو مش مسجل دخول، هيوقف السكريبت هنا ويعرض فورم الدخول."""
-    if not st.session_state.get("authenticated"):
-        _login_form()
-        st.stop()
-    sidebar_user_box()
-
-
 # ==================================================================
 # التنسيق العام
 # ==================================================================
